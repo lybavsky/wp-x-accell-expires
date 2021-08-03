@@ -168,7 +168,7 @@ class XCache
         $rules = [];
 
 
-        for ($r_idx = 0; $r_idx <= sizeof($rules_str_arr); $r_idx++) {
+        for ($r_idx = 0; $r_idx < sizeof($rules_str_arr); $r_idx++) {
             $rule_str = $rules_str_arr[$r_idx];
             if (trim($rule_str) == "") {
                 continue;
