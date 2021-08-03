@@ -112,19 +112,18 @@ class XCache
         $rules = get_transient(CACHE_KEY);
 
         $uri = $_SERVER["REQUEST_URI"];
-        error_log($uri);
 
         if ($rules == false) {
-            $rules = save_to_cache();
+            $rules = $this->save_to_cache();
         }
 
         foreach ($rules as $rule) {
             $rstr = trim($rule["rule"]);
             $found = false;
-            if ($rule['isregex'] && $uri == $rstr) {
+            if ($rule['isregex']!="true" && $uri == $rstr) {
                 error_log($rstr . " matches " . $uri);
                 $found = true;
-            } else if (!$rule['isregex']) {
+            } else if ($rule['isregex']=="true") {
                 $match = preg_match( "/".$rstr."/", $uri);
                 if ($match) {
                     error_log($rstr . " matches regex " . $uri);
@@ -133,12 +132,10 @@ class XCache
             }
 
             if ($found) {
-                $headers["MYHEADER"] = $rule["ttl"];
+                $headers["X-Accel-Expires"] = $rule["ttl"];
                 return $headers;
             }
         }
-
-        $headers["MYHEADER"] = "XYQ";
 
         return $headers;
     }
@@ -152,7 +149,7 @@ class XCache
     }
 
 
-    function save_to_cache()
+    static function save_to_cache()
     {
         $rules_option = get_option(OPTION_NAME);
         $rules_str_arr = explode("\r", $rules_option);
@@ -183,11 +180,11 @@ class XCache
         }
 
         $cache_set_success = set_transient(CACHE_KEY, $rules, CACHE_TTL);
-//        if (!$cache_set_success) {
-//      ]      error_log("add cache no success");
-//        } else {
-//            error_log("add to cache successful: " . sizeof($rules));
-//        }
+        if (!$cache_set_success) {
+            error_log("add cache no success");
+        } else {
+            error_log("add to cache successful: " . sizeof($rules));
+        }
 
         return $rules;
     }
