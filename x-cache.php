@@ -1,7 +1,7 @@
 <?php
 /*
 Plugin Name: X-Accel-Cache
-Plugin URI: https://ash.lt
+Plugin URI: https://github.com/lybavsky/wp-x-accell-expires
 Description: Plugin to change nginx cache ttl via setting X-Accel-Expires header
 Version: 1.0
 Author: Artem Shiryaev
