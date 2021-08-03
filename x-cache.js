@@ -2,6 +2,10 @@ const DEFAULT_TTL = 60;
 
 const FIELDS_COUNT = 2;
 
+const DEFAULT_RULE = "^\/some_uri\.*";
+
+const DEFAULT_ISREGEX = false;
+
 window.onload = function () {
     field_rules = document.getElementById("x_cache_rules");
     cont = document.getElementById("x_rules_cont");
@@ -14,8 +18,8 @@ window.onload = function () {
         for (var idx = 0; idx < x_rules.length; idx++) {
             val = x_rules[idx];
 
-            if (val["ttl"]<0) {
-                alert("ttl ("+val["ttl"] + ") не должен быть меньше нуля")
+            if (val["ttl"] < 0) {
+                alert("ttl (" + val["ttl"] + ") не должен быть меньше нуля")
                 e.preventDefault()
                 return;
             }
@@ -39,7 +43,7 @@ function render_field() {
         var rule_html = "<div style='margin-bottom: 5px'>" +
             "<input id='x_rule_field_rule_" + x_rule_idx + "' type='text' value='" + x_rule["rule"] + "' onchange='save_x_rules()'>" +
             "<input id='x_rule_field_ttl_" + x_rule_idx + "' type='number' value='" + x_rule["ttl"] + "' onchange='save_x_rules()'>" +
-            "<input id='x_rule_field_isregex_" + x_rule_idx + "' type='checkbox' " + (x_rule["isregex"]==="true" ? 'checked' : '') + " onchange='save_x_rules()' style='margin-left: 3px'>" +
+            "<input id='x_rule_field_isregex_" + x_rule_idx + "' type='checkbox' " + (x_rule["isregex"] === "true" ? 'checked' : '') + " onchange='save_x_rules()' style='margin-left: 3px'>" +
             "<button onclick='delete_row(" + x_rule_idx + ")'>del</button>"
             + "</div>";
         rules_html += rule_html;
@@ -74,7 +78,7 @@ function load_field() {
         var isregex = false
 
 
-        var rule = rule_row.substring(0, col_split_idxs[0]).replaceAll("\\;",";");
+        var rule = rule_row.substring(0, col_split_idxs[0]).replaceAll("\\;", ";");
         var ttl = rule_row.substring(col_split_idxs[0] + 1, col_split_idxs[1])
         var isregex = rule_row.substring(col_split_idxs[1] + 1,)
 
@@ -100,7 +104,7 @@ function save_x_rules() {
 function save_field() {
     var value = ""
     x_rules.forEach(function (val, idx, arr) {
-        value += val["rule"].replaceAll(";","\\;") + ";" + val["ttl"] + ";" + val["isregex"] + (idx !== arr.length - 1 ? "\n" : "")
+        value += val["rule"].replaceAll(";", "\\;") + ";" + val["ttl"] + ";" + val["isregex"] + (idx !== arr.length - 1 ? "\n" : "")
     })
 
     field_rules.value = value;
@@ -114,7 +118,7 @@ function delete_row(idx) {
 }
 
 function new_row() {
-    x_rules.push({"rule": "http://example.com/.*", "ttl": DEFAULT_TTL, "isregex": false})
+    x_rules.push({"rule": DEFAULT_RULE, "ttl": DEFAULT_TTL, "isregex": DEFAULT_ISREGEX})
     render_field()
     save_field()
 }

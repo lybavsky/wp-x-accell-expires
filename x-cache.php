@@ -18,7 +18,8 @@ const SETTINGS_NAME = "xcache_settings";
 
 const OPTION_NAME = "x_cache_rules";
 
-const CACHE_TTL = 60;
+const CACHE_TTL = 3600;
+const CACHE_KEY = "x_cache_accel_array";
 
 const SETTINGS_SECTION_ACCEL = "cache_accel";
 const SETTINGS_SECTION_DROP = "cache_drop";
@@ -32,6 +33,7 @@ class XCache
         add_action('admin_init', array($this, "setup_sections"));
         add_action('admin_init', array($this, "setup_fields"));
 
+        add_action('updated_option', array($this, "update_option_callback"));
 
         add_filter('wp_headers', array($this, "set_x_accel_expires"));
 
@@ -107,39 +109,88 @@ class XCache
 
     function set_x_accel_expires($headers)
     {
-        $crules = wp_cache_get("x_cache_accel_array");
+        $rules = get_transient(CACHE_KEY);
 
-        if ($crules == false) {
-            $crules = save_to_cache();
+        $uri = $_SERVER["REQUEST_URI"];
+        error_log($uri);
+
+        if ($rules == false) {
+            $rules = save_to_cache();
         }
 
-        return $headers;
-    }
-}
+        foreach ($rules as $rule) {
+            $rstr = trim($rule["rule"]);
+            $found = false;
+            if ($rule['isregex'] && $uri == $rstr) {
+                error_log($rstr . " matches " . $uri);
+                $found = true;
+            } else if (!$rule['isregex']) {
+                $match = preg_match( "/".$rstr."/", $uri);
+                if ($match) {
+                    error_log($rstr . " matches regex " . $uri);
+                    $found = true;
+                }
+            }
 
-function save_to_cache()
-{
-    $frules = get_option(OPTION_NAME);
-    $srules = explode("\r", $frules);
-
-
-    for ($r_idx = 0; $r_idx <= sizeof($srules); $r_idx++) {
-        $srule = $srules[$r_idx];
-        $idxs = [];
-
-        for ($i = 0; $i < strlen($srule); $i++) {
-            if ($srule[$i] === ";" && ($i === 0 || $srule[$i - 1] !== "\\")) {
-                array_push($idxs, $i);
+            if ($found) {
+                $headers["MYHEADER"] = $rule["ttl"];
+                return $headers;
             }
         }
 
-        $rule = substr($srule, 0, $idxs[0]);
-        $ttl = substr($srule, $idxs[0] + 1, $idxs[1] - $idxs[0] - 1);
-        $isregex = substr($srule, $idxs[1] + 1, strlen($srule));
+        $headers["MYHEADER"] = "XYQ";
 
-        error_log("rule: " . $srule . " -> " . $rule . " -> " . $ttl . " -> " . $isregex);
+        return $headers;
     }
 
+    function update_option_callback($opt_name)
+    {
+        if ($opt_name == OPTION_NAME) {
+            $this->save_to_cache();
+        }
+
+    }
+
+
+    function save_to_cache()
+    {
+        $rules_option = get_option(OPTION_NAME);
+        $rules_str_arr = explode("\r", $rules_option);
+
+        $rules = [];
+
+
+        for ($r_idx = 0; $r_idx <= sizeof($rules_str_arr); $r_idx++) {
+            $rule_str = $rules_str_arr[$r_idx];
+            if (trim($rule_str) == "") {
+                continue;
+            }
+
+            $idxs = [];
+
+            for ($i = 0; $i < strlen($rule_str); $i++) {
+                if ($rule_str[$i] === ";" && ($i === 0 || $rule_str[$i - 1] !== "\\")) {
+                    array_push($idxs, $i);
+                }
+            }
+
+            $rule = substr($rule_str, 0, $idxs[0]);
+            $ttl = substr($rule_str, $idxs[0] + 1, $idxs[1] - $idxs[0] - 1);
+            $isregex = substr($rule_str, $idxs[1] + 1, strlen($rule_str));
+
+            //error_log("rule: " . $rule);
+            array_push($rules, ["rule" => $rule, "ttl" => $ttl, "isregex" => $isregex]);
+        }
+
+        $cache_set_success = set_transient(CACHE_KEY, $rules, CACHE_TTL);
+//        if (!$cache_set_success) {
+//      ]      error_log("add cache no success");
+//        } else {
+//            error_log("add to cache successful: " . sizeof($rules));
+//        }
+
+        return $rules;
+    }
 }
 
 
