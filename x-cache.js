@@ -127,3 +127,13 @@ function new_row() {
 function xmsg(message) {
     console.log("X-Cache-Plugin: " + message)
 }
+
+
+function send_cache_drop(event) {
+    var url = document.getElementById("cache_url_field").value;
+    alert(url);
+
+    var form = document.createElement("form");
+
+    event.preventDefault();
+}

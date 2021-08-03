@@ -10,19 +10,7 @@ License: GPLv2
 Text Domain: x-cache
 */
 
-const PAGE_TITLE = "X-Accel-Cache plugin";
-const MENU_TITLE = "X-Cache";
-const CAP = "manage_options";
-const SLUG = "xcache";
-const SETTINGS_NAME = "xcache_settings";
-
-const OPTION_NAME = "x_cache_rules";
-
-const CACHE_TTL = 3600;
-const CACHE_KEY = "x_cache_accel_array";
-
-const SETTINGS_SECTION_ACCEL = "cache_accel";
-const SETTINGS_SECTION_DROP = "cache_drop";
+include "consts.php";
 
 class XCache
 {
@@ -40,6 +28,8 @@ class XCache
     }
 
 
+
+
     function show_menu()
     {
         add_submenu_page("options-general.php", PAGE_TITLE, MENU_TITLE, CAP, SLUG, array($this, "page_callback"));
@@ -53,15 +43,17 @@ class XCache
         <script lang="js" src="<?= plugin_dir_url(__FILE__) . "x-cache.js" ?>"></script>
 
 
-<!--        <h1>-->
-<!--            --><?//= get_admin_page_title() ?>
-<!--        </h1>-->
+        <!--        <h1>-->
+        <!--            --><?//= get_admin_page_title()
+        ?>
+        <!--        </h1>-->
 
         <div>
             <form method="post" action="options.php">
                 <?php
                 settings_fields(SETTINGS_NAME);
                 do_settings_sections(SLUG);
+
                 submit_button();
                 ?>
             </form>
@@ -72,7 +64,7 @@ class XCache
     function setup_sections()
     {
         add_settings_section(SETTINGS_SECTION_ACCEL, "X-Accel-Cache settings", array($this, "setup_section_accel"), SLUG);
-//        add_settings_section(SETTINGS_SECTION_DROP, "Drop cache settings", array($this, "setup_section_drop"), SLUG);
+        add_settings_section(SETTINGS_SECTION_DROP, "Drop cache settings", array($this, "setup_section_drop"), SLUG);
     }
 
 
@@ -84,22 +76,49 @@ class XCache
 
     public function setup_section_drop()
     {
-        echo "<hr/>";
+        ?>
+        <hr/>
+        <input type="text" style="min-width: 500px" placeholder="full url" id="cache_url_field">
+        <input type="button" value="clear" onclick="send_cache_drop(event)">
+        <?php
     }
 
     function setup_fields()
     {
 
-        add_settings_field("x_cache_rules", "Cache rules", array($this, "setup_field_x_cache_rules"), SLUG, SETTINGS_SECTION_ACCEL);
-        register_setting(SETTINGS_NAME, OPTION_NAME);
+        add_settings_field(OPTION_RULES_NAME, "Cache rules", array($this, "setup_field_x_cache_rules"), SLUG, SETTINGS_SECTION_ACCEL);
+        register_setting(SETTINGS_NAME, OPTION_RULES_NAME);
 
+        add_settings_field(OPTION_DROP_URL_NAME, "Jenkins job URL", array($this, "setup_field_drop_url"), SLUG, SETTINGS_SECTION_DROP);
+        register_setting(SETTINGS_NAME, OPTION_DROP_URL_NAME);
+
+        add_settings_field(OPTION_DROP_TOKEN_NAME, "Jenkins username:token", array($this, "setup_field_drop_token"), SLUG, SETTINGS_SECTION_DROP);
+        register_setting(SETTINGS_NAME, OPTION_DROP_TOKEN_NAME);
+
+
+    }
+
+    function setup_field_drop_url()
+    {
+        ?>
+        <input type="text" name="<?= OPTION_DROP_URL_NAME ?>" placeholder="https://ci.oursite.ru/job/invalidate/buildWithParameters"
+               value="<?= trim(get_option(OPTION_DROP_URL_NAME)) ?>">
+        <?php
+    }
+
+    function setup_field_drop_token()
+    {
+        ?>
+        <input type="text" name="<?= OPTION_DROP_TOKEN_NAME ?>" placeholder="admin:b7ca423fabca0123"
+               value="<?= trim(get_option(OPTION_DROP_TOKEN_NAME)) ?>">
+        <?php
     }
 
     function setup_field_x_cache_rules($arguments)
     {
         ?>
-        <textarea style="display: none" type='text' name='<?= OPTION_NAME ?>'
-                  id='<?= OPTION_NAME ?>'><?= trim(get_option(OPTION_NAME)) ?></textarea>
+        <textarea style="display: none" type='text' name='<?= OPTION_RULES_NAME ?>'
+                  id='<?= OPTION_RULES_NAME ?>'><?= trim(get_option(OPTION_RULES_NAME)) ?></textarea>
 
         <div id='x_rules_cont'>Cont</div>
         <div style="font-size: smaller">
@@ -131,11 +150,11 @@ class XCache
         foreach ($rules as $rule) {
             $rstr = trim($rule["rule"]);
             $found = false;
-            if ($rule['isregex']!="true" && $uri == $rstr) {
+            if ($rule['isregex'] != "true" && $uri == $rstr) {
                 error_log($rstr . " matches " . $uri);
                 $found = true;
-            } else if ($rule['isregex']=="true") {
-                $match = preg_match( "/".$rstr."/", $uri);
+            } else if ($rule['isregex'] == "true") {
+                $match = preg_match("/" . $rstr . "/", $uri);
                 if ($match) {
                     error_log($rstr . " matches regex " . $uri);
                     $found = true;
@@ -153,7 +172,7 @@ class XCache
 
     function update_option_callback($opt_name)
     {
-        if ($opt_name == OPTION_NAME) {
+        if ($opt_name == OPTION_RULES_NAME) {
             $this->save_to_cache();
         }
 
@@ -162,7 +181,7 @@ class XCache
 
     static function save_to_cache()
     {
-        $rules_option = get_option(OPTION_NAME);
+        $rules_option = get_option(OPTION_RULES_NAME);
         $rules_str_arr = explode("\r", $rules_option);
 
         $rules = [];
