@@ -50,13 +50,12 @@ class XCache
     {
         ?>
 
-
         <script lang="js" src="<?= plugin_dir_url(__FILE__) . "x-cache.js" ?>"></script>
 
 
-        <h1>
-            <?= get_admin_page_title() ?>
-        </h1>
+<!--        <h1>-->
+<!--            --><?//= get_admin_page_title() ?>
+<!--        </h1>-->
 
         <div>
             <form method="post" action="options.php">
@@ -73,7 +72,7 @@ class XCache
     function setup_sections()
     {
         add_settings_section(SETTINGS_SECTION_ACCEL, "X-Accel-Cache settings", array($this, "setup_section_accel"), SLUG);
-        add_settings_section(SETTINGS_SECTION_DROP, "Drop cache settings", array($this, "setup_section_drop"), SLUG);
+//        add_settings_section(SETTINGS_SECTION_DROP, "Drop cache settings", array($this, "setup_section_drop"), SLUG);
     }
 
 
@@ -103,6 +102,18 @@ class XCache
                   id='<?= OPTION_NAME ?>'><?= trim(get_option(OPTION_NAME)) ?></textarea>
 
         <div id='x_rules_cont'>Cont</div>
+        <div style="font-size: smaller">
+            List of regex-based or full-uri rules to add X-Accell-Expires header with.
+            <br/>
+            Fields:
+            <br/>
+            URL: full uri like /posts/414324-some-post or regex like ^\/posts\/[0-9]*-.*$
+            <br/>
+            TTL: value returned with X-Accel-Expires header (cache ttl in seconds)
+            <br/>
+            IsRegex: checkbox to set URL field type - full-uri or regex
+
+        </div>
         <?php
     }
 
