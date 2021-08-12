@@ -11,6 +11,8 @@ Text Domain: x-cache
 */
 
 include "consts.php";
+include "cached_settings.php";
+include "set_header.php";
 
 class XCache
 {
@@ -21,22 +23,37 @@ class XCache
         add_action('admin_init', array($this, "setup_sections"));
         add_action('admin_init', array($this, "setup_fields"));
 
-        add_action('updated_option', array($this, "update_option_callback"));
+        add_action('updated_option', "update_option_callback");
 
-        add_filter('wp_headers', array($this, "set_x_accel_expires"));
+        add_filter('wp_headers', "set_x_accel_expires");
 
     }
-
-
 
 
     function show_menu()
     {
-        add_submenu_page("options-general.php", PAGE_TITLE, MENU_TITLE, CAP, SLUG, array($this, "page_callback"));
-        //add_menu_page(PAGE_TITLE, MENU_TITLE, CAP, SLUG, array($this, "page_callback"));
+        add_submenu_page("options-general.php", PAGE_TITLE_SETTINGS, MENU_TITLE_SETTINGS, CAP_SETTINGS, SLUG_SETTINGS, array($this, "page_settings_callback"));
+
+        add_menu_page(PAGE_TITLE, MENU_TITLE, CAP, SLUG, array($this, "page_callback"));
     }
 
     function page_callback($attributes)
+    {
+        ?>
+        <h1>PAGE</h1>
+
+
+        <div>
+            <hr/>
+            <form action="<?=plugin_dir_url(__FILE__)?>x-cache-drop.php" method="POST" target="_blank">
+                <input type="text" name="url" style="min-width: 500px" placeholder="full url" id="cache_url_field">
+                <input type="submit" value="clear">
+            </form>
+        </div>
+        <?php
+    }
+
+    function page_settings_callback($attributes)
     {
         ?>
 
@@ -77,9 +94,6 @@ class XCache
     public function setup_section_drop()
     {
         ?>
-        <hr/>
-        <input type="text" style="min-width: 500px" placeholder="full url" id="cache_url_field">
-        <input type="button" value="clear" onclick="send_cache_drop(event)">
         <?php
     }
 
@@ -101,7 +115,8 @@ class XCache
     function setup_field_drop_url()
     {
         ?>
-        <input type="text" name="<?= OPTION_DROP_URL_NAME ?>" placeholder="https://ci.oursite.ru/job/invalidate/buildWithParameters"
+        <input type="text" name="<?= OPTION_DROP_URL_NAME ?>"
+               placeholder="https://ci.oursite.ru/job/invalidate/buildWithParameters"
                value="<?= trim(get_option(OPTION_DROP_URL_NAME)) ?>">
         <?php
     }
@@ -137,87 +152,6 @@ class XCache
     }
 
 
-    function set_x_accel_expires($headers)
-    {
-        $rules = get_transient(CACHE_KEY);
-
-        $uri = $_SERVER["REQUEST_URI"];
-
-        if ($rules == false) {
-            $rules = $this->save_to_cache();
-        }
-
-        foreach ($rules as $rule) {
-            $rstr = trim($rule["rule"]);
-            $found = false;
-            if ($rule['isregex'] != "true" && $uri == $rstr) {
-                error_log($rstr . " matches " . $uri);
-                $found = true;
-            } else if ($rule['isregex'] == "true") {
-                $match = preg_match("/" . $rstr . "/", $uri);
-                if ($match) {
-                    error_log($rstr . " matches regex " . $uri);
-                    $found = true;
-                }
-            }
-
-            if ($found) {
-                $headers["X-Accel-Expires"] = $rule["ttl"];
-                return $headers;
-            }
-        }
-
-        return $headers;
-    }
-
-    function update_option_callback($opt_name)
-    {
-        if ($opt_name == OPTION_RULES_NAME) {
-            $this->save_to_cache();
-        }
-
-    }
-
-
-    static function save_to_cache()
-    {
-        $rules_option = get_option(OPTION_RULES_NAME);
-        $rules_str_arr = explode("\r", $rules_option);
-
-        $rules = [];
-
-
-        for ($r_idx = 0; $r_idx < sizeof($rules_str_arr); $r_idx++) {
-            $rule_str = $rules_str_arr[$r_idx];
-            if (trim($rule_str) == "") {
-                continue;
-            }
-
-            $idxs = [];
-
-            for ($i = 0; $i < strlen($rule_str); $i++) {
-                if ($rule_str[$i] === ";" && ($i === 0 || $rule_str[$i - 1] !== "\\")) {
-                    array_push($idxs, $i);
-                }
-            }
-
-            $rule = substr($rule_str, 0, $idxs[0]);
-            $ttl = substr($rule_str, $idxs[0] + 1, $idxs[1] - $idxs[0] - 1);
-            $isregex = substr($rule_str, $idxs[1] + 1, strlen($rule_str));
-
-            //error_log("rule: " . $rule);
-            array_push($rules, ["rule" => $rule, "ttl" => $ttl, "isregex" => $isregex]);
-        }
-
-        $cache_set_success = set_transient(CACHE_KEY, $rules, CACHE_TTL);
-        if (!$cache_set_success) {
-            error_log("add cache no success");
-        } else {
-            error_log("add to cache successful: " . sizeof($rules));
-        }
-
-        return $rules;
-    }
 }
 
 

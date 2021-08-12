@@ -133,7 +133,11 @@ function send_cache_drop(event) {
     var url = document.getElementById("cache_url_field").value;
     alert(url);
 
-    var form = document.createElement("form");
+    // var form = document.createElement("form");
+    // form.action="x-cache-drop.php";
+    // form.method="POST";
+    // form.target="_blank";
+    //
 
-    event.preventDefault();
+   // event.preventDefault();
 }
